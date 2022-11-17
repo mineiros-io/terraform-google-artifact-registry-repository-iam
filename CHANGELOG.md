@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add variable `condition`
+- Add support for `computed_members`
+
+### Removed
+
+- BREAKING CHANGE: dropping support for Terraform Google Provider before `4.0`.
+
 ## [0.0.3]
 
 ### Added
