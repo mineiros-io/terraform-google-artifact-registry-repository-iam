@@ -5,8 +5,19 @@ resource "google_artifact_registry_repository_iam_binding" "binding" {
   repository = var.repository
   location   = var.location
   role       = var.role
-  members    = var.members
-  project    = var.project
+  members    = [for m in var.members : try(var.computed_members_map[regex("^computed:(.*)", m)[0]], m)]
+
+  dynamic "condition" {
+    for_each = var.condition != null ? [var.condition] : []
+
+    content {
+      expression  = condition.value.expression
+      title       = condition.value.title
+      description = try(condition.value.description, null)
+    }
+  }
+
+  project = var.project
 
   depends_on = [var.module_depends_on]
 }
@@ -18,8 +29,19 @@ resource "google_artifact_registry_repository_iam_member" "member" {
   repository = var.repository
   location   = var.location
   role       = var.role
-  member     = each.value
-  project    = var.project
+  member     = try(var.computed_members_map[regex("^computed:(.*)", each.value)[0]], each.value)
+
+  dynamic "condition" {
+    for_each = var.condition != null ? [var.condition] : []
+
+    content {
+      expression  = condition.value.expression
+      title       = condition.value.title
+      description = try(condition.value.description, null)
+    }
+  }
+
+  project = var.project
 
   depends_on = [var.module_depends_on]
 }
@@ -44,7 +66,7 @@ data "google_iam_policy" "policy" {
 
     content {
       role    = binding.value.role
-      members = try(binding.value.members, var.members)
+      members = [for m in binding.value.members : try(var.computed_members_map[regex("^computed:(.*)", m)[0]], m)]
 
       dynamic "condition" {
         for_each = try([binding.value.condition], [])

@@ -63,7 +63,7 @@ section {
 
         repository = "my-repository"
         location   = "us-central1"
-        role       = "roles/viewer"
+        role       = "roles/artifactregistry.reader"
         members    = ["user:member@example.com"]
       }
       ```
@@ -77,154 +77,199 @@ section {
     END
 
     section {
-      title = "Top-level Arguments"
+      title = "Main Resource Configuration"
 
-      section {
-        title = "Module Configuration"
+      variable "repository" {
+        required    = true
+        type        = string
+        description = <<-END
+          Used to find the parent resource to bind the IAM policy to.
+        END
+      }
 
-        variable "module_enabled" {
-          type        = bool
-          default     = true
+      variable "location" {
+        required    = true
+        type        = string
+        description = <<-END
+          The name of the location this repository is located in. Used to find the parent resource to bind the IAM policy to.
+        END
+      }
+
+      variable "members" {
+        type        = set(string)
+        default     = []
+        description = <<-END
+          Identities that will be granted the privilege in role. Each entry can have one of the following values:
+          - `allUsers`: A special identifier that represents anyone who is on the internet; with or without a Google account.
+          - `allAuthenticatedUsers`: A special identifier that represents anyone who is authenticated with a Google account or a service account.
+          - `user:{emailid}`: An email address that represents a specific Google account. For example, alice@gmail.com or joe@example.com.
+          - `serviceAccount:{emailid}`: An email address that represents a service account. For example, my-other-app@appspot.gserviceaccount.com.
+          - `group:{emailid}`: An email address that represents a Google group. For example, admins@example.com.
+          - `domain:{domain}`: A G Suite domain (primary, instead of alias) name that represents all the users of that domain. For example, google.com or example.com.
+          - `projectOwner:projectid`: Owners of the given project. For example, `projectOwner:my-example-project`
+          - `projectEditor:projectid`: Editors of the given project. For example, `projectEditor:my-example-project`
+          - `projectViewer:projectid`: Viewers of the given project. For example, `projectViewer:my-example-project`
+          - `computed:{identifier}`: An existing key from var.computed_members_map.
+        END
+      }
+
+      variable "computed_members_map" {
+        type        = map(string)
+        default     = {}
+        description = <<-END
+          A map of identifiers to identities to be replaced in 'var.members' or in members of `policy_bindings` to handle terraform computed values.
+          The format of each value must satisfy the format as described in `var.members`.
+        END
+        # readme_example = <<-END
+        #   members = [
+        #     "user:member@example.com",
+        #     "computed:myserviceaccount",
+        #   ]
+        #   computed_members_map = {
+        #     myserviceaccount = "serviceAccount:${google_service_account.service_account.id}"
+        #   }
+        # END
+      }
+
+      variable "role" {
+        type        = string
+        description = <<-END
+          The role that should be applied.
+          Note that custom roles must be of the format `[projects|organizations]/{parent-name}/roles/{role-name}`.
+          Must be set if `policy_bindings` is unset.
+        END
+      }
+
+      variable "project" {
+        type        = string
+        description = <<-END
+          The ID of the project in which the resource belongs. If it is not provided, the project will be parsed from the identifier of the parent resource. If no project is provided in the parent identifier and no project is specified, the provider project is used.
+        END
+      }
+
+      variable "authoritative" {
+        type        = bool
+        default     = true
+        description = <<-END
+          Whether to exclusively set (authoritative mode) or add (non-authoritative/additive mode) members to the role.
+        END
+      }
+
+      variable "condition" {
+        type        = object(condition)
+        description = <<-END
+          An IAM Condition for the target project IAM binding.
+        END
+
+        attribute "expression" {
+          required    = true
+          type        = string
           description = <<-END
-            Specifies whether resources in the module will be created.
+            Textual representation of an expression in Common Expression Language syntax.
           END
         }
 
-        variable "module_depends_on" {
-          type           = list(dependency)
-          description    = <<-END
-            A list of dependencies. Any object can be _assigned_ to this list to define a hidden external dependency.
+        attribute "title" {
+          required    = true
+          type        = string
+          description = <<-END
+            A title for the expression, i.e., a short string describing its purpose.
           END
-          readme_example = <<-END
-            module_depends_on = [
-              google_network.network
-            ]
+        }
+
+        attribute "description" {
+          type        = string
+          description = <<-END
+            An optional description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
           END
         }
       }
 
-      section {
-        title = "Main Resource Configuration"
+      variable "policy_bindings" {
+        type           = list(policy_binding)
+        description    = "A list of IAM policy bindings. If set, `role` is ignored and a policy_binding is created."
+        readme_example = <<-END
+          policy_bindings = [{
+            role    = "roles/artifactregistry.reader"
+            members = ["user:member@example.com"]
+          }]
+        END
 
-        variable "repository" {
+        attribute "role" {
           required    = true
           type        = string
           description = <<-END
-            Used to find the parent resource to bind the IAM policy to.
+            The role that should be applied.
           END
         }
 
-        variable "location" {
-          required    = true
-          type        = string
-          description = <<-END
-            The name of the location this repository is located in. Used to find the parent resource to bind the IAM policy to.
-          END
-        }
-
-        variable "members" {
+        attribute "members" {
           type        = set(string)
-          default     = []
+          default     = var.members
           description = <<-END
-            Identities that will be granted the privilege in role. Each entry can have one of the following values:
-            - `allUsers`: A special identifier that represents anyone who is on the internet; with or without a Google account.
-            - `allAuthenticatedUsers`: A special identifier that represents anyone who is authenticated with a Google account or a service account.
-            - `user:{emailid}`: An email address that represents a specific Google account. For example, alice@gmail.com or joe@example.com.
-            - `serviceAccount:{emailid}`: An email address that represents a service account. For example, my-other-app@appspot.gserviceaccount.com.
-            - `group:{emailid}`: An email address that represents a Google group. For example, admins@example.com.
-            - `domain:{domain}`: A G Suite domain (primary, instead of alias) name that represents all the users of that domain. For example, google.com or example.com.
-            - `projectOwner:projectid`: Owners of the given project. For example, `projectOwner:my-example-project`
-            - `projectEditor:projectid`: Editors of the given project. For example, `projectEditor:my-example-project`
-            - `projectViewer:projectid`: Viewers of the given project. For example, `projectViewer:my-example-project`
+            Identities that will be granted the privilege in `role`.
           END
         }
 
-        variable "role" {
-          type        = string
-          description = <<-END
-            The role that should be applied. Note that custom roles must be of the format `[projects|organizations]/{parent-name}/roles/{role-name}`.
-          END
-        }
-
-        variable "project" {
-          type        = string
-          description = <<-END
-            The ID of the project in which the resource belongs. If it is not provided, the project will be parsed from the identifier of the parent resource. If no project is provided in the parent identifier and no project is specified, the provider project is used.
-          END
-        }
-
-        variable "authoritative" {
-          type        = bool
-          default     = true
-          description = <<-END
-            Whether to exclusively set (authoritative mode) or add (non-authoritative/additive mode) members to the role.
-          END
-        }
-
-        variable "policy_bindings" {
-          type           = list(policy_binding)
+        attribute "condition" {
+          type           = object(condition)
           description    = <<-END
-            A list of IAM policy bindings.
+            An IAM Condition for a given binding.
           END
           readme_example = <<-END
-            policy_bindings = [{
-              role    = "roles/viewer"
-              members = ["user:member@example.com"]
-            }]
+            condition = {
+              expression = "request.time < timestamp(\"2022-01-01T00:00:00Z\")"
+              title      = "expires_after_2021_12_31"
+            }
           END
 
-          attribute "role" {
+          attribute "expression" {
             required    = true
             type        = string
             description = <<-END
-              The role that should be applied.
+              Textual representation of an expression in Common Expression Language syntax.
             END
           }
 
-          attribute "members" {
-            type        = set(string)
-            default     = var.members
+          attribute "title" {
+            required    = true
+            type        = string
             description = <<-END
-              Identities that will be granted the privilege in `role`.
+              A title for the expression, i.e. a short string describing its purpose.
             END
           }
 
-          attribute "condition" {
-            type           = object(condition)
-            description    = <<-END
-              An IAM Condition for a given binding.
+          attribute "description" {
+            type        = string
+            description = <<-END
+              An optional description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
             END
-            readme_example = <<-END
-              condition = {
-                expression = "request.time < timestamp(\"2022-01-01T00:00:00Z\")"
-                title      = "expires_after_2021_12_31"
-              }
-            END
-
-            attribute "expression" {
-              required    = true
-              type        = string
-              description = <<-END
-                Textual representation of an expression in Common Expression Language syntax.
-              END
-            }
-
-            attribute "title" {
-              required    = true
-              type        = string
-              description = <<-END
-                A title for the expression, i.e. a short string describing its purpose.
-              END
-            }
-
-            attribute "description" {
-              type        = string
-              description = <<-END
-                An optional description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
-              END
-            }
           }
         }
+      }
+    }
+
+    section {
+      title = "Module Configuration"
+
+      variable "module_enabled" {
+        type        = bool
+        default     = true
+        description = <<-END
+          Specifies whether resources in the module will be created.
+        END
+      }
+
+      variable "module_depends_on" {
+        type           = list(dependency)
+        description    = <<-END
+          A list of dependencies. Any object can be _assigned_ to this list to define a hidden external dependency.
+        END
+        readme_example = <<-END
+          module_depends_on = [
+            google_network.network
+          ]
+        END
       }
     }
   }
@@ -232,15 +277,15 @@ section {
   section {
     title   = "Module Outputs"
     content = <<-END
-      The following attributes are exported in the outputs of the module:
-    END
+    The following attributes are exported in the outputs of the module:
+  END
 
     output "iam" {
-      type        = bool
+      type        = object(iam)
       description = <<-END
-        All attributes of the created `iam_binding` or `iam_member` or
-        `iam_policy` resource according to the mode.
-      END
+      All attributes of the created `iam_binding` or `iam_member` or
+      `iam_policy` resource according to the mode.
+    END
     }
   }
 
@@ -261,6 +306,7 @@ section {
       END
     }
   }
+
 
   section {
     title   = "Module Versioning"

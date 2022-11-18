@@ -20,9 +20,8 @@ secure, and production-grade cloud infrastructure.
 - [Module Features](#module-features)
 - [Getting Started](#getting-started)
 - [Module Argument Reference](#module-argument-reference)
-  - [Top-level Arguments](#top-level-arguments)
-    - [Module Configuration](#module-configuration)
-    - [Main Resource Configuration](#main-resource-configuration)
+  - [Main Resource Configuration](#main-resource-configuration)
+  - [Module Configuration](#module-configuration)
 - [Module Outputs](#module-outputs)
 - [External Documentation](#external-documentation)
   - [Google Documentation](#google-documentation)
@@ -53,7 +52,7 @@ module "terraform-google-artifact-registry-repository-iam" {
 
   repository = "my-repository"
   location   = "us-central1"
-  role       = "roles/viewer"
+  role       = "roles/artifactregistry.reader"
   members    = ["user:member@example.com"]
 }
 ```
@@ -62,29 +61,7 @@ module "terraform-google-artifact-registry-repository-iam" {
 
 See [variables.tf] and [examples/] for details and use-cases.
 
-### Top-level Arguments
-
-#### Module Configuration
-
-- [**`module_enabled`**](#var-module_enabled): *(Optional `bool`)*<a name="var-module_enabled"></a>
-
-  Specifies whether resources in the module will be created.
-
-  Default is `true`.
-
-- [**`module_depends_on`**](#var-module_depends_on): *(Optional `list(dependency)`)*<a name="var-module_depends_on"></a>
-
-  A list of dependencies. Any object can be _assigned_ to this list to define a hidden external dependency.
-
-  Example:
-
-  ```hcl
-  module_depends_on = [
-    google_network.network
-  ]
-  ```
-
-#### Main Resource Configuration
+### Main Resource Configuration
 
 - [**`repository`**](#var-repository): *(**Required** `string`)*<a name="var-repository"></a>
 
@@ -106,12 +83,22 @@ See [variables.tf] and [examples/] for details and use-cases.
   - `projectOwner:projectid`: Owners of the given project. For example, `projectOwner:my-example-project`
   - `projectEditor:projectid`: Editors of the given project. For example, `projectEditor:my-example-project`
   - `projectViewer:projectid`: Viewers of the given project. For example, `projectViewer:my-example-project`
+  - `computed:{identifier}`: An existing key from var.computed_members_map.
 
   Default is `[]`.
 
+- [**`computed_members_map`**](#var-computed_members_map): *(Optional `map(string)`)*<a name="var-computed_members_map"></a>
+
+  A map of identifiers to identities to be replaced in 'var.members' or in members of `policy_bindings` to handle terraform computed values.
+  The format of each value must satisfy the format as described in `var.members`.
+
+  Default is `{}`.
+
 - [**`role`**](#var-role): *(Optional `string`)*<a name="var-role"></a>
 
-  The role that should be applied. Note that custom roles must be of the format `[projects|organizations]/{parent-name}/roles/{role-name}`.
+  The role that should be applied.
+  Note that custom roles must be of the format `[projects|organizations]/{parent-name}/roles/{role-name}`.
+  Must be set if `policy_bindings` is unset.
 
 - [**`project`**](#var-project): *(Optional `string`)*<a name="var-project"></a>
 
@@ -123,15 +110,33 @@ See [variables.tf] and [examples/] for details and use-cases.
 
   Default is `true`.
 
+- [**`condition`**](#var-condition): *(Optional `object(condition)`)*<a name="var-condition"></a>
+
+  An IAM Condition for the target project IAM binding.
+
+  The `condition` object accepts the following attributes:
+
+  - [**`expression`**](#attr-condition-expression): *(**Required** `string`)*<a name="attr-condition-expression"></a>
+
+    Textual representation of an expression in Common Expression Language syntax.
+
+  - [**`title`**](#attr-condition-title): *(**Required** `string`)*<a name="attr-condition-title"></a>
+
+    A title for the expression, i.e., a short string describing its purpose.
+
+  - [**`description`**](#attr-condition-description): *(Optional `string`)*<a name="attr-condition-description"></a>
+
+    An optional description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
+
 - [**`policy_bindings`**](#var-policy_bindings): *(Optional `list(policy_binding)`)*<a name="var-policy_bindings"></a>
 
-  A list of IAM policy bindings.
+  A list of IAM policy bindings. If set, `role` is ignored and a policy_binding is created.
 
   Example:
 
   ```hcl
   policy_bindings = [{
-    role    = "roles/viewer"
+    role    = "roles/artifactregistry.reader"
     members = ["user:member@example.com"]
   }]
   ```
@@ -175,11 +180,31 @@ See [variables.tf] and [examples/] for details and use-cases.
 
       An optional description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
 
+### Module Configuration
+
+- [**`module_enabled`**](#var-module_enabled): *(Optional `bool`)*<a name="var-module_enabled"></a>
+
+  Specifies whether resources in the module will be created.
+
+  Default is `true`.
+
+- [**`module_depends_on`**](#var-module_depends_on): *(Optional `list(dependency)`)*<a name="var-module_depends_on"></a>
+
+  A list of dependencies. Any object can be _assigned_ to this list to define a hidden external dependency.
+
+  Example:
+
+  ```hcl
+  module_depends_on = [
+    google_network.network
+  ]
+  ```
+
 ## Module Outputs
 
 The following attributes are exported in the outputs of the module:
 
-- [**`iam`**](#output-iam): *(`bool`)*<a name="output-iam"></a>
+- [**`iam`**](#output-iam): *(`object(iam)`)*<a name="output-iam"></a>
 
   All attributes of the created `iam_binding` or `iam_member` or
   `iam_policy` resource according to the mode.
