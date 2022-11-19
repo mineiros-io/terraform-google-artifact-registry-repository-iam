@@ -59,7 +59,7 @@ section {
 
       ```hcl
       module "terraform-google-artifact-registry-repository-iam" {
-        source = "github.com/mineiros-io/terraform-google-artifact-registry-repository-iam?ref=v0.0.3"
+        source = "github.com/mineiros-io/terraform-google-artifact-registry-repository-iam?ref=v0.1.0"
 
         repository = "my-repository"
         location   = "us-central1"
