@@ -25,7 +25,7 @@ variable "members" {
 
   validation {
     condition     = alltrue([for m in var.members : can(regex("^(allUsers|allAuthenticatedUsers|(user|serviceAccount|group|domain|projectOwner|projectEditor|projectViewer|computed|principalSet|principal):)", m))])
-    error_message = "The value must be a non-empty list of strings where each entry is a valid principal type identified with `user:`, `serviceAccount:`, `group:`, `domain:`, `projectOwner:`, `projectEditor:`, `projectViewer:`, `principalSet:`, `principal:` or `computed`."
+    error_message = "The value must be a non-empty list of strings where each entry is a valid principal type identified with `allUsers`, `allAuthenticatedUsers` or prefixed with `user:`, `serviceAccount:`, `group:`, `domain:`, `projectOwner:`, `projectEditor:`, `projectViewer:`, `principalSet:`, `principal:` or `computed`."
   }
 }
 
