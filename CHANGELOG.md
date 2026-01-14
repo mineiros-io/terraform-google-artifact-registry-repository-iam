@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support federated principals: allow `principal:{identifier}` and `principalSet:{identifier}` in `members` and `computed_members_map` validations. Aligns with approach in project IAM.
+
 ## [0.1.0]
 
 ### Added
